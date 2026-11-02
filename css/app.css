@@ -5,15 +5,15 @@
   --line: #e6e8f2;
   --ink: #2e3150;
   --ink-2: #6b6f8e;
-  --primary: #5b64d9;
-  --primary-edge: #444cb8;
-  --primary-soft: #eceefe;
-  --task: #5b64d9;
-  --event: #f0a030;
+  --primary: #6d5efc;
+  --primary-edge: #4a3bd1;
+  --primary-soft: #efedff;
+  --task: #6d5efc;
+  --event: #ff9a1f;
   --event-soft: #fff3df;
-  --life: #f2789b;
+  --life: #ff5c8a;
   --life-soft: #ffe9ef;
-  --idea: #2fb48f;
+  --idea: #14c2a3;
   --idea-soft: #e0f6ef;
   --warn-bg: #fff4d6;
   --warn-ink: #8a5f00;
@@ -26,7 +26,7 @@
   --r-lg: 22px;
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --nav-h: 72px;
+  --nav-h: 76px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
   color-scheme: light;
@@ -306,3 +306,62 @@ button, input, textarea, select { font: inherit; color: inherit; }
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }
 .card.soft .progress { background: var(--bg); }
+
+/* ===== 改版：更像 Duolingo（厚實、一次一件事） ===== */
+body { font-size: 17px; font-weight: 600; }
+.top h1 { font-size: 30px; font-weight: 900; }
+.btn { min-height: 56px; border-radius: 18px; font-size: 17px; font-weight: 900; box-shadow: 0 5px 0 var(--e); }
+.btn:active:not(:disabled) { transform: translateY(5px); }
+.btn.ghost { border-width: 2px; box-shadow: 0 4px 0 var(--line); }
+.btn.ghost:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 var(--line); }
+.row, .card { border-width: 2px; border-bottom-width: 5px; border-radius: 20px; }
+.row:active { transform: translateY(2px); border-bottom-width: 3px; }
+.row.pending { border-color: var(--warn-line); background: var(--warn-bg); }
+.row.pending .title { color: var(--warn-ink); }
+.nav { border-top-width: 2px; }
+.tab { font-size: 12px; }
+.tab svg { width: 28px; height: 28px; }
+.tab[aria-current='page'] { color: var(--primary); }
+.tab[aria-current='page']::before { content: ''; position: absolute; inset: 8px 10px; border-radius: 16px; background: var(--primary-soft); z-index: -1; border: 2px solid var(--primary); }
+.tab { z-index: 0; }
+.fab { width: 64px; height: 64px; border-radius: 24px; margin-top: -30px; box-shadow: 0 6px 0 var(--primary-edge); }
+
+/* 今天開場 */
+.hero { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 24px; background: var(--primary-soft); border: 2px solid var(--primary); border-bottom-width: 5px; }
+.hero .mascot { width: 84px; height: 84px; flex: none; }
+.hero-body { flex: 1; min-width: 0; }
+.hero-t { font-size: 20px; font-weight: 900; line-height: 1.3; }
+.hero-s { color: var(--ink-2); font-size: 14px; font-weight: 800; margin-top: 6px; }
+.hero .progress { background: var(--bg); height: 18px; }
+.progress > span { background: var(--event); }
+.progress.slim { height: 16px; flex: 1; margin: 0; }
+
+/* 全螢幕步驟 */
+.sheet.full { height: calc(100dvh - var(--safe-t)); max-height: none; border-radius: 28px 28px 0 0; display: flex; flex-direction: column; padding-top: 14px; }
+.sheet.full .grab { display: none; }
+.sheet.full .sheet-body, .sheet.full .step { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.sheet.full .actions { margin-top: auto; position: sticky; bottom: 0; background: var(--bg); padding: 14px 0 4px; gap: 10px; }
+.lesson-top { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.x { width: 44px; height: 44px; border: 0; background: none; color: var(--ink-2); cursor: pointer; display: grid; place-items: center; border-radius: 12px; padding: 0; }
+.x svg { width: 26px; height: 26px; }
+.say { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.say .mascot { width: 76px; height: 76px; flex: none; }
+.bubble { position: relative; border: 2px solid var(--line); border-radius: 18px; padding: 12px 16px; font-weight: 800; font-size: 18px; line-height: 1.35; background: var(--bg); }
+.bubble::before { content: ''; position: absolute; left: -9px; top: 50%; width: 14px; height: 14px; background: var(--bg); border-left: 2px solid var(--line); border-bottom: 2px solid var(--line); transform: translateY(-50%) rotate(45deg); }
+.capture { min-height: 150px; font-size: 20px; border-radius: 22px; }
+.row-links { display: flex; justify-content: center; gap: 28px; }
+.row-links .link { color: var(--ink-2); font-size: 15px; }
+
+/* 預覽卡：只看重點 */
+.preview { border-width: 2px; border-bottom-width: 5px; border-radius: 24px; padding: 18px; }
+.types { gap: 6px; }
+.type { height: 44px; font-size: 15px; border-radius: 14px; }
+.big-title { font-size: 26px; font-weight: 900; line-height: 1.3; overflow-wrap: anywhere; }
+.when { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 18px; font-weight: 800; color: var(--event); }
+.when svg { width: 24px; height: 24px; flex: none; }
+.unsure-box { margin: 14px 0 0; font-size: 15px; }
+
+.login .btn { margin-top: 4px; }
+.login input { border-radius: 18px; }
+.grid2 > *, .field input, .field select { min-width: 0; max-width: 100%; }
+.field input[type='date'], .field input[type='time'] { -webkit-appearance: none; appearance: none; display: block; }

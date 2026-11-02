@@ -56,22 +56,21 @@ function sortTasks(list) {
 function shell() {
   const n = pendingInbox().length;
   const tab = (id, label, icon) =>
-    `<button class="tab" data-tab="${id}" ${S.tab === id ? 'aria-current="page"' : ''}>${ICON[icon]}<span>${label}</span>${id === 'inbox' && n ? `<b class="dot">${n}</b>` : ''}</button>`;
+    `<button class="tab" data-tab="${id}" ${S.tab === id ? 'aria-current="page"' : ''}>${ICON[icon]}<span>${label}</span>${id === 'today' && n ? `<b class="dot">${n}</b>` : ''}</button>`;
   return `
     <header class="top">
       <div>
         <h1 id="title"></h1>
         <div class="sub" id="subtitle"></div>
       </div>
-      <button class="avatar" data-act="settings" aria-label="設定與操作紀錄">${ICON.user}</button>
     </header>
     <main class="view enter" id="view"></main>
     <nav class="nav" aria-label="主要分頁">
       ${tab('today', '今天', 'sun')}
-      ${tab('inbox', '收件匣', 'tray')}
-      <button class="fab" data-act="capture" aria-label="丟一句話">${ICON.plus}</button>
       ${tab('tasks', '任務', 'check')}
+      <button class="fab" data-act="capture" aria-label="丟一句話">${ICON.plus}</button>
       ${tab('logs', '紀錄', 'book')}
+      <button class="tab" data-act="settings">${ICON.user}<span>我</span></button>
     </nav>`;
 }
 
@@ -84,13 +83,13 @@ function render(animate = false) {
       if (b.dataset.tab === S.tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
     const n = pendingInbox().length;
-    const inboxTab = root.querySelector('[data-tab="inbox"]');
+    const inboxTab = root.querySelector('[data-tab="today"]');
     let dot = inboxTab.querySelector('.dot');
     if (n && !dot) { dot = document.createElement('b'); dot.className = 'dot'; inboxTab.append(dot); }
     if (dot) n ? (dot.textContent = n) : dot.remove();
   }
   const view = $('#view');
-  const views = { today: viewToday, inbox: viewInbox, tasks: viewTasks, logs: viewLogs };
+  const views = { today: viewToday, tasks: viewTasks, logs: viewLogs };
   const { title, sub, html } = views[S.tab]();
   $('#title').textContent = title;
   $('#subtitle').textContent = sub;
@@ -119,47 +118,35 @@ function empty(text, mood = 'happy') {
 }
 
 /* ---------------- 今天 ---------------- */
+function inboxRow(i) {
+  const p = i.parsed || {};
+  const k = p.type && TYPE_LABEL[p.type] ? `<span class="chip ${p.type}">${TYPE_LABEL[p.type]}</span>` : `<span class="chip warn">未分類</span>`;
+  const u = (p.uncertain || []).length ? `<span class="chip warn">${p.uncertain.length} 項待確認</span>` : '';
+  return `<div class="row pending" data-open-inbox="${i.id}"><div class="body"><div class="title">${esc(i.raw)}</div><div class="meta">${k}${u}</div></div>${ICON.chevron}</div>`;
+}
+
 function viewToday() {
   const t = todayStr();
   const todays = sortTasks(S.tasks.filter((x) => x.date === t && x.status !== 'cancelled'));
   const done = todays.filter((x) => x.status === 'done').length;
   const soon = sortTasks(S.tasks.filter((x) => isOpen(x) && x.date && x.date !== t && x.date <= addDays(t, 3) && (x.date_role === 'due' || x.date < t)));
   const undated = S.tasks.filter((x) => isOpen(x) && !x.date).length;
-  const n = pendingInbox().length;
+  const pend = pendingInbox();
   const d = new Date();
+  const left = todays.length - done;
+  const msg = !todays.length ? '今天還沒排事情' : left === 0 ? '今天的事都完成了！' : `今天還有 ${left} 件事`;
+  const mood = !todays.length ? 'happy' : left === 0 ? 'happy' : 'happy';
 
-  let html = '';
-  if (todays.length) {
-    html += `<div class="card soft">
-      <div class="section-h" style="margin:0"><h2>今天完成 ${done} / ${todays.length}</h2><span class="count">${done === todays.length ? '全部完成' : `還有 ${todays.length - done} 件`}</span></div>
-      <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="${todays.length}" aria-valuenow="${done}"><span style="width:${(done / todays.length) * 100}%"></span></div>
-    </div>`;
-  }
-  if (n) html += `<div class="section"><button class="inbox-nudge" data-tab="inbox">${ICON.tray}<span style="flex:1">收件匣有 ${n} 則還沒確認</span>${ICON.chevron}</button></div>`;
+  let html = `<div class="hero">${mascot(mood, true)}<div class="hero-body"><div class="hero-t">${msg}</div>
+    ${todays.length ? `<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="${todays.length}" aria-valuenow="${done}"><span style="width:${(done / todays.length) * 100}%"></span></div><div class="hero-s">${done} / ${todays.length} 完成</div>` : '<div class="hero-s">按下面的 ＋ 丟一句話</div>'}
+  </div></div>`;
 
-  html += `<section class="section"><div class="section-h"><h2>今天</h2></div>`;
-  html += todays.length ? `<div class="list">${todays.map(taskRow).join('')}</div>` : empty('今天還空空的。按下面的 ＋，把想到的事丟進來。');
-  html += `</section>`;
-
+  if (pend.length) html += `<section class="section"><div class="section-h"><h2>等你確認</h2><span class="count">${pend.length}</span></div><div class="list">${pend.map(inboxRow).join('')}</div></section>`;
+  if (todays.length) html += `<section class="section"><div class="section-h"><h2>今天</h2></div><div class="list">${todays.map(taskRow).join('')}</div></section>`;
   if (soon.length) html += `<section class="section"><div class="section-h"><h2>快到期</h2><span class="count">${soon.length}</span></div><div class="list">${soon.map(taskRow).join('')}</div></section>`;
   if (undated) html += `<section class="section"><button class="link" data-filter-go="nodate">另有 ${undated} 件任務還沒排日期</button></section>`;
 
   return { title: greet(), sub: `${d.getMonth() + 1} 月 ${d.getDate()} 日 週${WEEK[d.getDay()]}`, html };
-}
-
-/* ---------------- 收件匣 ---------------- */
-function viewInbox() {
-  const items = pendingInbox();
-  const html = items.length
-    ? `<p class="sub" style="color:var(--ink-2);font-weight:600;margin:4px 2px 14px">這裡的內容還沒存成正式資料。點一則確認或修改。</p>
-       <div class="list">${items.map((i) => {
-         const p = i.parsed || {};
-         const k = p.type && TYPE_LABEL[p.type] ? `<span class="chip ${p.type}">${TYPE_LABEL[p.type]}</span>` : `<span class="chip warn">未分類</span>`;
-         const u = (p.uncertain || []).length ? `<span class="chip warn">${p.uncertain.length} 項待確認</span>` : '';
-         return `<div class="row" data-open-inbox="${i.id}"><div class="body"><div class="title">${esc(i.raw)}</div><div class="meta">${k}${u}<span class="chip">${fmtDate(i.created_at.slice(0, 10)) || ''}</span></div></div>${ICON.chevron}</div>`;
-       }).join('')}</div>`
-    : empty('收件匣是空的，想到什麼都可以先丟進來。', 'sleep');
-  return { title: '收件匣', sub: items.length ? `${items.length} 則待確認` : '全部處理完了', html };
 }
 
 /* ---------------- 任務 ---------------- */
@@ -202,11 +189,11 @@ function viewLogs() {
 
 /* ---------------- 底部面板 ---------------- */
 let sheetEl, scrimEl, lastFocus;
-function openSheet(html, { onClose } = {}) {
+function openSheet(html, { onClose, full } = {}) {
   closeSheet(true);
   lastFocus = document.activeElement;
   scrimEl = document.createElement('div'); scrimEl.className = 'scrim';
-  sheetEl = document.createElement('div'); sheetEl.className = 'sheet'; sheetEl.setAttribute('role', 'dialog'); sheetEl.setAttribute('aria-modal', 'true');
+  sheetEl = document.createElement('div'); sheetEl.className = 'sheet'; sheetEl.setAttribute('role', 'dialog'); sheetEl.setAttribute('aria-modal', 'true'); if (full) sheetEl.classList.add('full');
   sheetEl.innerHTML = `<div class="grab"></div><div class="sheet-body">${html}</div>`;
   sheetEl._onClose = onClose;
   document.body.append(scrimEl, sheetEl);
@@ -248,13 +235,15 @@ function toast(msg, undo) {
 /* ---------------- 輸入 → 預覽 → 確認 ---------------- */
 const EXAMPLES = ['週五前交統計作業', '明天下午三點系學會開會', '今天跑了五公里，覺得很舒服', '想到迎新可以辦密室逃脫'];
 
+const lessonTop = (pct) => `<div class="lesson-top"><button class="x" data-close aria-label="關閉">${ICON.x}</button><div class="progress slim"><span style="width:${pct}%"></span></div></div>`;
+
 function openCapture(prefill = '') {
   openSheet(`
-    <h3>丟一句話</h3>
-    <p class="hint">不用先分類，我會整理好給你確認。用 #標籤、@專案 也可以。</p>
-    <textarea class="capture" id="cap" autofocus placeholder="想到什麼就寫什麼…" aria-label="輸入內容">${esc(prefill)}</textarea>
+    ${lessonTop(33)}
+    <div class="say">${mascot('happy')}<div class="bubble">想記什麼？一句話就好</div></div>
+    <textarea class="capture" id="cap" autofocus placeholder="例如：週五前交統計作業" aria-label="輸入內容">${esc(prefill)}</textarea>
     <div class="examples" aria-label="範例">${EXAMPLES.map((x) => `<button type="button" data-ex="${esc(x)}">${esc(x)}</button>`).join('')}</div>
-    <div class="actions"><button class="btn block" id="go" ${prefill ? '' : 'disabled'}>整理</button></div>`);
+    <div class="actions"><button class="btn block" id="go" ${prefill ? '' : 'disabled'}>整理</button></div>`, { full: true });
   const ta = $('#cap', sheetEl), go = $('#go', sheetEl);
   ta.addEventListener('input', () => { go.disabled = !ta.value.trim(); });
   ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && ta.value.trim()) go.click(); });
@@ -292,42 +281,58 @@ async function parse(raw) {
   }
 }
 
+function whenText(p) {
+  if (!p.date && !p.time) return '沒有日期';
+  return [p.date ? fmtDate(p.date) : '', p.time || '', p.type === 'task' && p.date_role === 'due' ? '截止' : ''].filter(Boolean).join(' ');
+}
+
 function previewHTML(p) {
+  const edit = !!p._edit;
   const unsureFields = new Set((p.uncertain || []).map((u) => u.field));
   const isTaskish = p.type === 'task' || p.type === 'event';
+  const unsorted = p.type === 'unsorted';
   const typeBtns = Object.entries(TYPE_LABEL).map(([k, l]) => `<button type="button" class="type" data-t="${k}" role="radio" aria-checked="${p.type === k}">${l}</button>`).join('');
   const notes = (p.uncertain || []).filter((u) => !(u.field === 'type' && TYPE_LABEL[p.type] && p._typeTouched));
+  const say = unsorted ? '這是哪一種呢？' : notes.length ? '有一點我不確定，幫我看看' : '我整理成這樣，對嗎？';
+  const chips = [p.project ? `<span class="chip">@${esc(p.project)}</span>` : '', ...(p.tags || []).map((g) => `<span class="chip">#${esc(g)}</span>`)].join('');
+
+  const summary = `
+    <div class="big-title">${esc(isTaskish ? p.title : unsorted ? p.title : (p.text ?? p.raw))}</div>
+    ${isTaskish ? `<div class="when">${ICON.cal}<span>${esc(whenText(p))}</span></div>` : ''}
+    ${chips ? `<div class="meta" style="margin-top:10px">${chips}</div>` : ''}`;
+
+  const form = unsorted ? '' : `
+    ${isTaskish ? `
+      <label class="field"><span>標題</span><input id="f-title" value="${esc(p.title)}"></label>
+      <div class="grid2">
+        <label class="field ${unsureFields.has('date') ? 'unsure' : ''}"><span>日期</span><input type="date" id="f-date" value="${p.date || ''}"></label>
+        <label class="field ${unsureFields.has('time') ? 'unsure' : ''}"><span>時間</span><input type="time" id="f-time" value="${p.time || ''}"></label>
+      </div>
+      ${p.type === 'task' ? `<div class="field"><span>這個日期是</span><div class="seg" id="f-role">
+          <button type="button" data-role="scheduled" aria-pressed="${p.date_role !== 'due'}">預定做</button>
+          <button type="button" data-role="due" aria-pressed="${p.date_role === 'due'}">截止日</button></div></div>` : ''}
+    ` : `
+      <label class="field"><span>內容</span><textarea id="f-text">${esc(p.text ?? p.raw)}</textarea></label>
+      <label class="field"><span>日期</span><input type="date" id="f-date" value="${p.date || todayStr()}"></label>
+    `}
+    <div class="grid2">
+      <label class="field"><span>專案</span><input id="f-project" value="${esc(p.project || '')}" placeholder="無"></label>
+      <label class="field"><span>標籤</span><input id="f-tags" value="${esc((p.tags || []).join(' '))}" placeholder="用空白分隔"></label>
+    </div>`;
+
   return `
-    <h3>${p.type === 'unsorted' ? '這是哪一種？' : '看看對不對'}</h3>
-    <p class="hint">確認後才會存成正式資料，也可以先放著。</p>
+    ${lessonTop(66)}
+    <div class="say">${mascot(unsorted ? 'worry' : 'happy')}<div class="bubble">${say}</div></div>
     <div class="preview">
-      ${notes.length ? `<div class="unsure-box">待確認<ul>${notes.map((u) => `<li>${esc(u.note)}</li>`).join('')}</ul></div>` : ''}
-      <div class="types ${p.type === 'unsorted' ? 'need' : ''}" role="radiogroup" aria-label="類型">${typeBtns}</div>
-      ${isTaskish ? `
-        <label class="field"><span>標題</span><input id="f-title" value="${esc(p.title)}"></label>
-        <div class="grid2">
-          <label class="field ${unsureFields.has('date') ? 'unsure' : ''}"><span>日期</span><input type="date" id="f-date" value="${p.date || ''}"></label>
-          <label class="field ${unsureFields.has('time') ? 'unsure' : ''}"><span>時間</span><input type="time" id="f-time" value="${p.time || ''}"></label>
-        </div>
-        ${p.type === 'task' ? `<div class="field"><span>這個日期是</span><div class="seg" id="f-role">
-            <button type="button" data-role="scheduled" aria-pressed="${p.date_role !== 'due'}">預定做</button>
-            <button type="button" data-role="due" aria-pressed="${p.date_role === 'due'}">截止日</button></div></div>` : ''}
-      ` : p.type === 'unsorted' ? '' : `
-        <label class="field"><span>內容</span><textarea id="f-text">${esc(p.text ?? p.raw)}</textarea></label>
-        <label class="field ${unsureFields.has('date') ? 'unsure' : ''}"><span>日期</span><input type="date" id="f-date" value="${p.date || todayStr()}"></label>
-      `}
-      ${p.type === 'unsorted' ? '' : `<div class="grid2">
-        <label class="field"><span>專案</span><input id="f-project" value="${esc(p.project || '')}" placeholder="無"></label>
-        <label class="field"><span>標籤</span><input id="f-tags" value="${esc((p.tags || []).join(' '))}" placeholder="用空白分隔"></label>
-      </div>`}
-      <div class="raw">原文：${esc(p.raw)}${p.parser === 'ai' ? '　（AI 整理）' : '　（規則整理）'}</div>
+      <div class="types ${unsorted ? 'need' : ''}" role="radiogroup" aria-label="類型">${typeBtns}</div>
+      ${edit ? form : summary}
+      ${notes.length && !edit ? `<div class="unsure-box">${notes.map((u) => esc(u.note)).join('<br>')}</div>` : ''}
+      <div class="raw">原文：${esc(p.raw)}</div>
     </div>
     <div class="actions">
-      <button class="btn block" id="ok" ${p.type === 'unsorted' ? 'disabled' : ''}>確認存入</button>
-      <div class="actions two" style="margin:0">
-        <button class="btn ghost" id="later">先放著</button>
-        <button class="btn ghost" id="drop">捨棄</button>
-      </div>
+      <button class="btn block" id="ok" ${unsorted ? 'disabled' : ''}>${edit ? '存起來' : '沒錯，存起來'}</button>
+      ${edit || unsorted ? '' : '<button class="btn ghost block" id="edit">我要修改</button>'}
+      <div class="row-links"><button class="link" id="later">先放著</button><button class="link" id="drop">捨棄</button></div>
     </div>`;
 }
 
@@ -347,7 +352,7 @@ function readForm(p) {
 
 function showPreview(item) {
   const original = item.parsed || parseLocal(item.raw);
-  let p = { ...original, raw: item.raw };
+  let p = { ...original, raw: item.raw }; p.text = p.text ?? item.raw;
   const draw = () => {
     setSheet(previewHTML(p));
     sheetEl.querySelectorAll('.type').forEach((b) => b.addEventListener('click', () => {
@@ -361,10 +366,11 @@ function showPreview(item) {
       sheetEl.querySelectorAll('#f-role button').forEach((x) => x.setAttribute('aria-pressed', x === b));
     }));
     $('#ok', sheetEl).onclick = () => confirmItem(item, original, readForm(p));
+    const eb = $('#edit', sheetEl); if (eb) eb.onclick = () => { p = readForm(p); p._edit = true; draw(); };
     $('#later', sheetEl).onclick = () => { closeSheet(); toast('先放在收件匣'); };
     $('#drop', sheetEl).onclick = () => discardItem(item);
   };
-  if (!sheetEl) openSheet('');
+  if (!sheetEl) openSheet('', { full: true });
   draw();
 }
 
@@ -582,8 +588,9 @@ function openSettings() {
 
 /* ---------------- 事件 ---------------- */
 document.addEventListener('click', (e) => {
-  const el = e.target.closest('[data-tab],[data-act],[data-toggle],[data-open-task],[data-open-inbox],[data-open-log],[data-filter],[data-filter-go]');
+  const el = e.target.closest('[data-tab],[data-act],[data-toggle],[data-open-task],[data-open-inbox],[data-open-log],[data-filter],[data-filter-go],[data-close]');
   if (!el || !$('#view')) return;
+  if (el.hasAttribute('data-close')) return closeSheet();
   if (el.dataset.toggle) { e.stopPropagation(); return toggleTask(el.dataset.toggle, el); }
   if (el.dataset.tab) { if (S.tab !== el.dataset.tab) { S.tab = el.dataset.tab; render(true); window.scrollTo({ top: 0 }); } return; }
   if (el.dataset.act === 'capture') return openCapture();

@@ -10,6 +10,8 @@ export const ICON = {
   tick: svg('<path d="m5 12.5 4.5 4.5L19 7.5"/>', 'stroke-width="3.4"'),
   user: svg('<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>'),
   search: svg('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>'),
+  x: svg('<path d="M6 6l12 12M18 6 6 18"/>', 'stroke-width="3"'),
+  cal: svg('<rect x="3.5" y="5" width="17" height="15" rx="4"/><path d="M8 3v4M16 3v4M3.5 10h17"/>'),
   chevron: svg('<path d="m9 6 6 6-6 6"/>', 'style="width:20px;height:20px;flex:none;opacity:.6"'),
 };
 
